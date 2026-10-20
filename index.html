@@ -235,6 +235,7 @@ window.__MAP__ = {"lon0":133.5,"lat1":37.85,"inner":[134.0,33.9,141.1,37.35],"la
 const DATA = {
   people: 3,
   eur: 4.34,
+  usd: 3.70,
   daysInJapan: 13,
 
   places: {
@@ -358,6 +359,10 @@ const DATA = {
     { name: 'Holafly', url: 'https://esim.holafly.com/pl/esim-japonii/', data: 'bez limitu', price: '13,60 zł za dzień na osobę', perDay: { pln: 13.60 } },
     { name: 'Orange Flex', url: 'https://flex.orange.pl/travel/esim-japonia', data: '10 GB, 15 dni', price: '80 zł na osobę', perPerson: { pln: 80 } },
     { name: 'Nomad', url: 'https://www.nomadesim.com/japan-eSIM/unlimited-14day', data: 'bez limitu, 14 dni', price: '36,44 € na osobę', perPerson: { eur: 36.44 } },
+    { name: 'MobiMatter IIJ', url: 'https://mobimatter.com/travel-esim/iij-japan-10-gb-esim?destination=JP', data: '10 GB, 30 dni, sieć Docomo', price: '7,99 $ na osobę', perPerson: { usd: 7.99 }, extra: true },
+    { name: 'MobiMatter IIJ', url: 'https://mobimatter.com/travel-esim/iij-japan-15-gb-esim?destination=JP', data: '15 GB, 30 dni, sieć Docomo', price: '11,99 $ na osobę', perPerson: { usd: 11.99 }, extra: true },
+    { name: 'MobiMatter IIJ', url: 'https://mobimatter.com/travel-esim/iij-japan-20-gb-esim?destination=JP', data: '20 GB, 30 dni, sieć Docomo', price: '13,99 $ na osobę', perPerson: { usd: 13.99 }, extra: true },
+    { name: 'MobiMatter IIJ', url: 'https://mobimatter.com/travel-esim/iij-japan-50-gb-esim?destination=JP', data: '50 GB, 30 dni, sieć Docomo', price: '29,99 $ na osobę', perPerson: { usd: 29.99 }, extra: true },
   ],
   insurance: [
     { name: 'Warta, wariant 1', url: 'https://www.warta.pl/kalkulator/ubezpieczenie-turystyczne/fb13ef6e-c3b3-11f1-972b-a7c8a80523b6/oferta?p=10001', total: 441 },
@@ -764,6 +769,7 @@ function renderPrep() {
   const esim = DATA.esim.map((o) => {
     let per, perText, allText;
     if (o.perPerson && o.perPerson.eur) { per = o.perPerson.eur * eur; perText = approx(per); allText = approx(per * n); }
+    else if (o.perPerson && o.perPerson.usd) { per = o.perPerson.usd * DATA.usd; perText = approx(per); allText = approx(per * n); }
     else if (o.perPerson) { per = o.perPerson.pln; perText = money(per); allText = money(per * n); }
     else if (o.shared) { per = o.shared.eur * eur / n; perText = approx(per); allText = approx(o.shared.eur * eur); }
     else { per = o.perDay.pln * days; perText = money(per); allText = money(per * n); }
@@ -772,17 +778,18 @@ function renderPrep() {
   const best = esim.reduce((a, b) => (b.per < a.per ? b : a));
   root.append(
     h('h2', {}, ['Internet w telefonie (eSIM)', h('span', { class: 'status', text: 'do wyboru' })]),
-    h('p', { class: 'sub', text: `W Japonii jesteście ${days} dni, od 2 do 14 listopada, więc wystarczy pakiet na 14–15 dni. Holafly liczy za dzień, więc policzony jest za ${days} dni. Ceny w euro przeliczone po ok. ${String(eur).replace('.', ',')} zł.` }),
+    h('p', { class: 'sub', text: `W Japonii jesteście ${days} dni, od 2 do 14 listopada, więc wystarczy pakiet na 14–15 dni. Holafly liczy za dzień, więc policzony jest za ${days} dni. Ceny w euro przeliczone po ok. ${String(eur).replace('.', ',')} zł, a w dolarach po ok. ${DATA.usd.toFixed(2).replace('.', ',')} zł.` }),
     h('div', { class: 'tw' }, [h('table', { class: 'cost' }, [
       h('thead', {}, [h('tr', {}, [h('th', { text: 'Oferta' }), h('th', { text: 'Cena w ofercie' }), h('th', { class: 'num', text: 'Na osobę' }), h('th', { class: 'num', text: 'Dla 3 osób' })])]),
       h('tbody', {}, esim.map((o) => h('tr', { class: o === best ? 'best' : null }, [
-        h('td', {}, [ext(o.url, o.name), h('span', { class: 'n', text: o.data })]),
+        h('td', {}, [ext(o.url, o.name), h('span', { class: 'n', text: o.extra ? `${o.data}, spoza arkusza` : o.data })]),
         h('td', {}, [o.price, o.shared ? h('span', { class: 'n', text: 'jeden pakiet dzielony na 3 osoby' }) : null]),
         h('td', { class: 'num', text: o.perText }),
         h('td', { class: 'num', text: o.allText }),
       ]))),
     ])]),
     h('p', { class: 'cn', text: `Najtaniej na osobę wychodzi ${best.name} (${best.data}), oznaczony kreską przy nazwie.` }),
+    h('p', { class: 'cn', text: 'Pakiety MobiMatter IIJ: na Androidzie trzeba ręcznie ustawić APN. Pakiet startuje przy pierwszym użyciu danych i wygasa, jeśli nie zostanie aktywowany w ciągu 2 miesięcy od zakupu. Nie da się go doładować.' }),
   );
 
   root.append(
