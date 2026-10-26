@@ -330,6 +330,7 @@ const DATA = {
         { t: '15:30', k: 'see', x: 'Ścieżka Filozofów (Tetsugaku no michi)' },
         { t: '16:00', k: 'see', x: 'Ginkaku-ji (Srebrny Pawilon), 8:30–17:00' },
         { t: '17:00', k: 'see', x: 'Sklepy, może LOFT' },
+        { t: '18:30', k: 'see', x: 'Pokaz sumo przez GetYourGuide' },
         { t: '20:00', k: 'see', x: 'Zamek Nijō z iluminacją ogrodów by NAKED, 2000 jenów, do sprawdzenia' },
         { t: '21:00', k: 'trans', x: 'Autobus z zamku Nijō na dworzec, ok. 20 min' },
         { t: '22:00', k: 'trans', x: 'Pociąg Kioto → Osaka' },
@@ -404,10 +405,16 @@ const DATA = {
     { label: 'Hotel w Tokio, 6 nocy', hotel: 'ueno', paidBy: 'kt', amount: 4584.77, charge: '31.10' },
     { label: 'Tokyo Disneyland', note: '12.11', paidBy: 'm', amount: 798.83 },
     { label: 'Wycieczka pod Fuji', note: '11.11, GetYourGuide', paidBy: 'm', amount: 679.17 },
+    { label: 'Polisa', note: 'ubezpieczenie na 3 osoby', paidBy: 'kt', amount: 491.00 },
+    { label: 'Parking', paidBy: 'kt', amount: 518.97 },
+    { label: 'Sagano Romantic Train', note: '4.11', paidBy: 'm', amount: 134.50, charge: '26.10', chargeUnsure: true },
+    { label: 'Ceremonia herbaciana w Kioto', note: '6.11, GetYourGuide', paidBy: 'm', amount: 331.11, charge: '3.11' },
+    { label: 'Sumo w Kioto', note: '6.11, GetYourGuide', paidBy: 'm', amount: 375.81, charge: '3.11' },
+    { label: 'Zamek w Osace', note: '8.11', paidBy: 'm', amount: 90.18 },
   ],
   payers: {
-    kt: { name: 'Karolina i Tomek', persons: 2, what: 'Wyłożyli za cztery noclegi.' },
-    m:  { name: 'Marta', persons: 1, what: 'Wyłożyła za Disneyland i wycieczkę pod Fuji.' },
+    kt: { name: 'Karolina i Tomek', persons: 2, what: 'Wyłożyli za noclegi, polisę i parking.' },
+    m:  { name: 'Marta', persons: 1, what: 'Wyłożyła za Disneyland, wycieczkę pod Fuji, pociąg Sagano, ceremonię herbacianą, sumo i zamek w Osace.' },
   },
 
   // Arkusz „przed wyjazdem”
@@ -768,7 +775,7 @@ function renderMoney() {
     h('h2', { text: 'Kto komu ile oddaje' }),
     h('div', { class: 'settle' }, [
       h('p', { class: 'big' }, [`${from.name} ${net >= 0 ? 'przelewa' : 'przelewają'} ${to} `, h('b', { text: money(Math.abs(net)) }), '.']),
-      h('p', { class: 'why', text: `To różnica między częścią Marty za noclegi (${money(owes.m)}) a częścią Karoliny i Tomka za Disneyland i Fuji (${money(owes.kt)}). Jeden przelew zamiast dwóch.` }),
+      h('p', { class: 'why', text: `To różnica między tym, co Marta oddaje Karolinie i Tomkowi (${money(owes.m)}), a tym, co oni oddają jej (${money(owes.kt)}). Jeden przelew zamiast dwóch.` }),
     ]),
     h('div', { class: 'opts' }, ['kt', 'm'].map((who) => h('article', { class: 'opt' }, [
       h('h3', { text: P[who].name }),
@@ -776,7 +783,7 @@ function renderMoney() {
       h('p', { class: 'od', text: P[who].what }),
       h('p', { class: 'tm' }, ['Koszt po rozliczeniu: ', h('b', { text: money(share(who)) }), P[who].persons > 1 ? `, czyli ${money(share(who) / P[who].persons)} na osobę` : '']),
     ]))),
-    h('p', { class: 'cn', text: `Na osobę wychodzi ${money(grand / total)}. Rozliczenie obejmuje tylko pozycje wpisane do arkusza: noclegi, Disneyland i wycieczkę pod Fuji.` }),
+    h('p', { class: 'cn', text: `Na osobę wychodzi ${money(grand / total)}. Rozliczenie obejmuje tylko pozycje wpisane do arkusza.` }),
   );
 
   const cell = (v) => (v ? h('td', { class: 'num', text: money(v) }) : h('td', { class: 'num zero', text: '–' }));
@@ -801,21 +808,20 @@ function renderMoney() {
     ])]),
   );
 
-  // Kiedy hotele pobiorą pieniądze
-  const byDate = {};
-  for (const r of rows.filter((r) => r.charge)) (byDate[r.charge] = byDate[r.charge] || []).push(r);
-  const dates = Object.keys(byDate).sort((a, b) => parseFloat(a.split('.').reverse().join('.')) - parseFloat(b.split('.').reverse().join('.')));
+  // Kiedy pobiorą pieniądze
+  const dayKey = (d) => parseFloat(d.split('.').reverse().join('.'));
+  const charged = rows.filter((r) => r.charge).sort((a, b) => dayKey(a.charge) - dayKey(b.charge));
   root.append(
-    h('h2', { text: 'Kiedy hotele pobiorą pieniądze' }),
-    h('p', { class: 'sub', text: 'Wszystkie noclegi płacą Karolina i Tomek.' }),
+    h('h2', { text: 'Kiedy pobiorą pieniądze' }),
+    h('p', { class: 'sub', text: 'Pozycje, przy których arkusz podaje datę pobrania.' }),
     h('div', { class: 'tw' }, [h('table', { class: 'cost' }, [
-      h('thead', {}, [h('tr', {}, [h('th', { text: 'Data' }), h('th', { text: 'Za co' }), h('th', { class: 'num', text: 'Kwota' })])]),
-      h('tbody', {}, dates.map((d) => h('tr', {}, [
-        h('td', { text: `${d}.2026` }),
-        h('td', { text: byDate[d].map((r) => DATA.hotels[r.hotel].short).join(', ') }),
-        h('td', { class: 'num', text: money(byDate[d].reduce((a, r) => a + r.amount, 0)) }),
+      h('thead', {}, [h('tr', {}, [h('th', { text: 'Data' }), h('th', { text: 'Za co' }), h('th', { text: 'Płaci' }), h('th', { class: 'num', text: 'Kwota' })])]),
+      h('tbody', {}, charged.map((r) => h('tr', {}, [
+        h('td', { text: `${r.charge}.2026${r.chargeUnsure ? '?' : ''}` }),
+        h('td', { text: r.hotel ? DATA.hotels[r.hotel].short : r.label }),
+        h('td', { text: P[r.paidBy].name }),
+        h('td', { class: 'num', text: money(r.amount) }),
       ]))),
-      h('tfoot', {}, [h('tr', {}, [h('th', { text: 'Razem' }), h('td'), h('td', { class: 'num', text: money(paid.kt) })])]),
     ])]),
   );
 }
@@ -857,8 +863,8 @@ function renderPrep() {
   );
 
   root.append(
-    h('h2', {}, ['Ubezpieczenie podróżne', h('span', { class: 'status', text: 'do wyboru' })]),
-    h('p', { class: 'sub', text: 'Oferty na 3 osoby.' }),
+    h('h2', {}, ['Ubezpieczenie podróżne', h('span', { class: 'status go', text: 'kupione' })]),
+    h('p', { class: 'sub', text: 'W rozliczeniu jest polisa za 491 zł, opłacona przez Karolinę i Tomka. Arkusz nie mówi, która to oferta. Niżej oferty, które były rozważane, każda na 3 osoby.' }),
     h('div', { class: 'tw' }, [h('table', { class: 'cost' }, [
       h('thead', {}, [h('tr', {}, [h('th', { text: 'Oferta' }), h('th', { class: 'num', text: 'Na 3 osoby' }), h('th', { class: 'num', text: 'Na osobę' })])]),
       h('tbody', {}, DATA.insurance.map((o) => h('tr', {}, [
